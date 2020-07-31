@@ -227,6 +227,7 @@ post '/create_payment_intent' do
       :description => "Example PaymentIntent",
       :capture_method => ENV['CAPTURE_METHOD'] == "manual" ? "manual" : "automatic",
       payment_method_types: payment_methods_for_country(payload[:country]),
+     :return_url => "example://return_url",
       :metadata => {
         :order_id => '5278735C-1F40-407D-933A-286E463E72D8',
       }.merge(payload[:metadata] || {}),
