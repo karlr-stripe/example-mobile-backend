@@ -329,6 +329,44 @@ def generate_payment_response(payment_intent)
   end
 end
 
+# ===== Payment Sheet endpoint
+# See https://stripe.com/docs/payments/accept-a-payment?platform=ios&ui=payment-sheet
+# or https://stripe.com/docs/payments/accept-a-payment?platform=android&ui=payment-sheet
+post '/checkout' do
+  authenticate!
+  payload = params
+
+  if request.content_type != nil and request.content_type.include? 'application/json' and params.empty?
+      payload = Sinatra::IndifferentHash[JSON.parse(request.body.read)]
+  end
+
+  begin
+    # Use an existing Customer ID if this is a returning customer
+    customer_id =  @customer.id
+    ephemeral_key = Stripe::EphemeralKey.create(
+      {customer: customer_id},
+      {stripe_version: '2020-08-27'}
+    )
+    payment_intent = Stripe::PaymentIntent.create({
+      amount: 1099,
+      currency: 'usd',
+      customer: customer_id
+    })
+
+  rescue Stripe::StripeError => e
+    status 402
+    return log_info("Error creating checkout details: #{e.message}")
+  end
+
+  log_info("Checkout deails successfully created: #{payment_intent.id}")
+  status 200
+  return {
+    paymentIntent: payment_intent['client_secret'],
+    ephemeralKey: ephemeral_key['secret'],
+    customer: customer_id
+  }.to_json
+end
+
 # ===== Helpers
 
 # Our example apps sell emoji apparel; this hash lets us calculate the total amount to charge.
